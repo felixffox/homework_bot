@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from exceptions import ServiceError, EndpointError,\
-MessageSendingError, GlobalsError, DataTypeError, ResponseFormatError
+    MessageSendingError, GlobalsError, DataTypeError, ResponseFormatError
 
 import requests
 import telegram
@@ -54,7 +54,9 @@ def send_message(bot, message):
         ))
     logging.info(f'Message "{message}" is sent')
 
+
 def get_api_answer(current_timestamp):
+    """Получает ответ от API"""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     all_params = dict(url=ENDPOINT, headers=HEADERS, params=params)
@@ -76,6 +78,7 @@ def get_api_answer(current_timestamp):
     except Exception as error:
         raise ResponseFormatError(FORMAT_NOT_JSON.format(error))
 
+
 def check_response(response):
     """
     Возвращает домашку, если есть.
@@ -89,6 +92,7 @@ def check_response(response):
         return response['homeworks'][0]
     else:
         raise IndexError(LIST_IS_EMPTY)
+
 
 def parse_status(homework):
     """Возвращает текст сообщения от ревьюера."""
@@ -104,6 +108,7 @@ def parse_status(homework):
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
+
 def check_tokens():
     """Проверяет доступность переменных окружения."""
     for key in (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT):
@@ -114,6 +119,7 @@ def check_tokens():
             logging.error(GLOBAL_VARIABLE_IS_EMPTY)
             return False
     return True
+
 
 def main():
     """Основная логика работы бота."""
