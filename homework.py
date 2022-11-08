@@ -116,22 +116,13 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    for key in (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT):
-        if key is None:
-            logging.critical(GLOBAL_VARIABLE_IS_MISSING)
-            return False
-# Не очень понял идею с изменением выхода по отсутствующей
-# переменной (в ревью строки 121 и 124(return False)). Пока оставил как было
-        if not key:
-            logging.critical(GLOBAL_VARIABLE_IS_EMPTY)
-            return False
-    return True
+    logging.info('Проверка наличия всех токенов')
+    return all ([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT])
 
 
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logging.critical(GLOBAL_VARIABLE_IS_MISSING)
         sys.exit('Ошибка глобальной переменной. Смотрите логи.')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -144,7 +135,9 @@ def main():
                 'current_date', int(time.time())
             )
             homeworks = check_response(response)
-            message = parse_status(homeworks[0])
+            message = parse_status(homeworks)
+            if len(homeworks) > 0:
+                send_message(bot, parse_status(homeworks[0]))
             if message != last_message:
                 send_message(bot, message)
                 last_message = message
