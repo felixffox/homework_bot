@@ -117,7 +117,7 @@ def parse_status(homework):
 def check_tokens():
     """Проверяет доступность переменных окружения."""
     logging.info('Проверка наличия всех токенов')
-    return all ([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT])
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT])
 
 
 def main():
