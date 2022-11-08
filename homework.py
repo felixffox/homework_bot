@@ -25,7 +25,8 @@ HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 CONNECTION_ERROR = 'Ошибка соединения: {error}, {url}, {headers}, {params}'
 SERVICE_REJECTION = 'Отсутствует доступ к эндпоинту {code}'
-WRONG_ENDPOINT = 'Некорректный эндпоинт {response_status}, {url}, {headers}, {params}'
+WRONG_ENDPOINT = 'Некорректный эндпоинт {response_status}, {url},\
+                                        {headers}, {params}'
 WRONG_HOMEWORK_STATUS = 'Некорректный статус {homework_status}'
 WRONG_DATA_TYPE = 'Неверный тип данных {type}, вместо "dict"'
 WRONG_HOMEWORK_NAME = 'Некорректное ключ {homework_name}'
@@ -118,8 +119,10 @@ def check_tokens():
     for key in (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT):
         if key is None:
             logging.critical(GLOBAL_VARIABLE_IS_MISSING)
-            return False                                    # Не очень понял идею с изменением выхода по отсутствующей
-        if not key:                                         # переменной (в ревью строки 121 и 124). Пока оставил как было
+            return False 
+# Не очень понял идею с изменением выхода по отсутствующей
+# переменной (в ревью строки 121 и 124(return False)). Пока оставил как было
+        if not key:  
             logging.critical(GLOBAL_VARIABLE_IS_EMPTY)
             return False
     return True
