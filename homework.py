@@ -119,10 +119,10 @@ def check_tokens():
     for key in (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT):
         if key is None:
             logging.critical(GLOBAL_VARIABLE_IS_MISSING)
-            return False 
+            return False
 # Не очень понял идею с изменением выхода по отсутствующей
 # переменной (в ревью строки 121 и 124(return False)). Пока оставил как было
-        if not key:  
+        if not key:
             logging.critical(GLOBAL_VARIABLE_IS_EMPTY)
             return False
     return True
