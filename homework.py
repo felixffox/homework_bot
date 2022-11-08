@@ -1,10 +1,11 @@
 import logging
+import sys
 import os
 import time
 from pathlib import Path
 
 from exceptions import ServiceError, EndpointError,\
-    MessageSendingError, GlobalsError, DataTypeError, ResponseFormatError
+    MessageSendingError, NotForSend, DataTypeError, ResponseFormatError
 
 import requests
 import telegram
@@ -22,14 +23,15 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-CONNECTION_ERROR = '{error}, {url}, {headers}, {params}'
-SERVICE_REJECTION = '{code}'
-WRONG_ENDPOINT = '{response_status}, {url}, {headers}, {params}'
-WRONG_HOMEWORK_STATUS = '{homework_status}'
+CONNECTION_ERROR = 'Ошибка соединения: {error}, {url}, {headers}, {params}'
+SERVICE_REJECTION = 'Отсутствует доступ к эндпоинту {code}'
+WRONG_ENDPOINT = 'Некорректный эндпоинт {response_status}, {url}, {headers}, {params}'
+WRONG_HOMEWORK_STATUS = 'Некорректный статус {homework_status}'
 WRONG_DATA_TYPE = 'Неверный тип данных {type}, вместо "dict"'
-STATUS_IS_CHANGED = '{verdict}, {homework}'
+WRONG_HOMEWORK_NAME = 'Некорректное ключ {homework_name}'
+STATUS_IS_CHANGED = 'Статус работы изменился {verdict}, {homework}'
 STATUS_IS_NOT_CHANGED = 'Статус не изменился, нет записей'
-FAILURE_TO_SEND_MESSAGE = '{error}, {message}'
+FAILURE_TO_SEND_MESSAGE = 'Ошибка при отправке сообщения {error}, {message}'
 GLOBAL_VARIABLE_IS_MISSING = 'Отсутствует глобальная переменная'
 GLOBAL_VARIABLE_IS_EMPTY = 'Пустая глобальная переменная'
 MESSAGE_IS_SENT = 'Сообщение {message} отправлено'
@@ -84,14 +86,14 @@ def check_response(response):
     Возвращает домашку, если есть.
     Проверяет валидность её статуса.
     """
-    if 'code' in response:
-        raise ServiceError(SERVICE_REJECTION.format(
-            code=response.get('code'),
-        ))
-    if response['homeworks']:
-        return response['homeworks'][0]
-    else:
-        raise IndexError(LIST_IS_EMPTY)
+    if not isinstance(response, dict):
+        raise TypeError('Ошибка в типе ответа API')
+    if 'homeworks' not in response or 'current_date' not in response:
+        raise ServiceError(SERVICE_REJECTION)
+    homeworks = response.get('homeworks')
+    if not isinstance(homeworks, list):
+        raise KeyError('Homeworks не является списком')
+    return homeworks
 
 
 def parse_status(homework):
@@ -101,6 +103,8 @@ def parse_status(homework):
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
 
+    if 'homework_name' not in homework:
+        raise KeyError(WRONG_HOMEWORK_NAME)
     if homework_status not in HOMEWORK_STATUSES:
         raise NameError(WRONG_HOMEWORK_STATUS.format(homework_status))
 
@@ -113,10 +117,10 @@ def check_tokens():
     """Проверяет доступность переменных окружения."""
     for key in (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, ENDPOINT):
         if key is None:
-            logging.error(GLOBAL_VARIABLE_IS_MISSING)
-            return False
-        if not key:
-            logging.error(GLOBAL_VARIABLE_IS_EMPTY)
+            logging.critical(GLOBAL_VARIABLE_IS_MISSING)
+            return False                                    # Не очень понял идею с изменением выхода по отсутствующей
+        if not key:                                         # переменной (в ревью строки 121 и 124). Пока оставил как было
+            logging.critical(GLOBAL_VARIABLE_IS_EMPTY)
             return False
     return True
 
@@ -124,25 +128,39 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        raise GlobalsError('Ошибка глобальной переменной. Смотрите логи.')
+        logging.critical(GLOBAL_VARIABLE_IS_MISSING)
+        sys.exit('Ошибка глобальной переменной. Смотрите логи.')
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    last_message = ''
 
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            homework = check_response(response)
-            message = parse_status(homework)
-            send_message(bot, message)
-            logging.info(homework)
+            current_timestamp = response.get(
+                'current_date', int(time.time())
+            )
+            homeworks = check_response(response)
+            message = parse_status(homeworks[0])
+            if message != last_message:
+                send_message(bot, message)
+                last_message = message
+            logging.info(homeworks)
             current_timestamp = response.get('current_date')
-        except IndexError:
-            message = 'Статус работы не изменился'
-            send_message(bot, message)
-            logging.info(message)
+            if message == last_message:
+                message = 'Статус работы не изменился'
+                send_message(bot, message)
+                logging.info(message)
+
+        except NotForSend as error:
+            message = f'Сбой в работе программы: {error}'
+            logging.error(message, exc_info=True)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            if message != last_message:
+                send_message(bot, message)
+                last_message = message
+            logging.error(message)
         finally:
             time.sleep(RETRY_TIME)
             logging.info(MESSAGE_IS_SENT.format(message))

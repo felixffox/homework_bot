@@ -32,3 +32,9 @@ class ResponseFormatError(Exception):
     """Ошибка, если формат response не json."""
 
     pass
+
+
+class NotForSend(Exception):
+    """Ошибка не для пересылки в Telegram"""
+
+    pass
