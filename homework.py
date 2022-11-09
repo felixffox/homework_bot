@@ -137,7 +137,7 @@ def main():
             homeworks = check_response(response)
             message = parse_status(homeworks)
             if len(homeworks) > 0:
-                send_message(bot, parse_status(homeworks[0]))
+                parse_status(homeworks[0])
             if message != last_message:
                 send_message(bot, message)
                 last_message = message
